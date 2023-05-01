@@ -1,0 +1,8 @@
+bin/server.log
+.idea/
+db.sqlite3
+*.pyc
+.DS_Store
+geckodriver.log
+.docker
+media
