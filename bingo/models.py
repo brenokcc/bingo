@@ -28,7 +28,7 @@ class Pessoa(models.Model):
         return self.value_set(('nome', 'telefone', 'observacao'))
 
     def get_cartelas(self):
-        return self.cartela_set.display('numero', 'talao', 'get_situacao').actions('devolver_cartela', 'prestar_conta')
+        return self.cartela_set.ignore('responsavel')
 
     def view(self):
         return self.value_set('get_dados_gerais', 'get_cartelas')
@@ -88,14 +88,18 @@ class Evento(models.Model):
     def get_valor_nao_recebido(self):
         return self.get_cartelas().filter(responsavel__isnull=False, realizou_pagamento=False).count() * self.get_valor()
 
+    @meta('Receita Final')
+    def get_receita_final(self):
+        return self.get_valor_recebido_venda() + self.get_valor_recebido_doacao()
+
     def get_dados_gerais(self):
         return self.value_set('nome', 'data')
 
     def get_resumo_finaneiro(self):
-        return self.value_set('get_receita_esperada', 'get_valor_recebido_venda', 'get_valor_recebido_doacao', 'get_valor_receber', 'get_valor_nao_recebido')
+        return self.value_set('get_receita_esperada', 'get_valor_recebido_venda', 'get_valor_recebido_doacao', 'get_valor_receber', 'get_valor_nao_recebido', 'get_receita_final')
 
     def get_cartelas(self):
-        return Cartela.objects.filter(talao__evento=self).display('numero', 'talao', 'responsavel', 'get_situacao').actions('atribuir_cartela', 'devolver_cartela', 'prestar_conta').batch_actions('atribuir_cartela').expand()
+        return Cartela.objects.filter(talao__evento=self).all().actions('informar_responsavel', 'informar_posse_cartela').batch_actions('informar_responsavel', 'informar_posse_cartela').expand()
 
     def view(self):
         return self.value_set('get_dados_gerais', 'get_cartelas', 'get_resumo_finaneiro')
@@ -139,7 +143,7 @@ class Talao(models.Model):
 
 class CartelaManager(models.Manager):
     def all(self):
-        return self
+        return self.display('numero', 'talao', 'responsavel', 'posse', 'get_situacao').actions('devolver_cartela', 'prestar_conta').batch_actions('devolver_cartela')
 
 
 class Cartela(models.Model):
@@ -149,6 +153,8 @@ class Cartela(models.Model):
     responsavel = models.ForeignKey(Pessoa, verbose_name='Responsável', null=True)
     realizou_pagamento = models.BooleanField('Realizou Pagamento', null=True)
     recebeu_comissao = models.BooleanField('Recebeu Comissão', null=True)
+
+    posse = models.ForeignKey(Pessoa, verbose_name='Posse', null=True, related_name='possecartela_set', blank=True)
 
     objects = CartelaManager()
 
