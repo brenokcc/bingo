@@ -20,5 +20,5 @@ class AppDashboard(Dashboard):
         self.action_bar('bingo.pessoa', 'bingo.evento')
 
     def view(self):
-        return self.objects('bingo.evento').all().actions('view')
+        return self.objects('bingo.evento').all().actions('view').calendar('data')
 

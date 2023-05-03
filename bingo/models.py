@@ -1,9 +1,10 @@
 from sloth.db import models, role, meta
+from .roles import ADMINISTRADOR
 
 
 class PessoaManager(models.Manager):
     def all(self):
-        return self
+        return self.lookups(ADMINISTRADOR)
 
 
 class Pessoa(models.Model):
@@ -22,13 +23,13 @@ class Pessoa(models.Model):
         return self.nome
 
     def has_permission(self, user):
-        return user.is_superuser
+        return user.is_superuser or user.roles.contains(ADMINISTRADOR)
 
     def get_dados_gerais(self):
         return self.value_set(('nome', 'telefone', 'observacao'))
 
     def get_cartelas(self):
-        return self.cartela_set.ignore('responsavel')
+        return (self.cartela_set.all() | self.possecartela_set.all()).display('get_evento', after='talao').aggregations('get_valor_nao_pago', 'get_valor_pendente_pagamento', 'get_valor_pago').expand()
 
     def view(self):
         return self.value_set('get_dados_gerais', 'get_cartelas')
@@ -36,7 +37,7 @@ class Pessoa(models.Model):
 
 class EventoManager(models.Manager):
     def all(self):
-        return self.display('nome', 'data').calendar('data')
+        return self.lookups(ADMINISTRADOR).display('data', 'get_total_cartelas').cards()
 
 
 class Evento(models.Model):
@@ -63,18 +64,18 @@ class Evento(models.Model):
         return self.nome
 
     def has_permission(self, user):
-        return user.is_superuser
+        return user.is_superuser or user.roles.contains(ADMINISTRADOR)
 
-    def get_valor(self):
+    def get_valor_liquido_cartela(self):
         return self.valor_venda_cartela - self.valor_comissao_cartela
 
     @meta('Receita Esperada')
     def get_receita_esperada(self):
-        return self.get_cartelas().filter(responsavel__isnull=False).count() * self.get_valor()
+        return self.get_cartelas().filter(responsavel__isnull=False).count() * self.get_valor_liquido_cartela()
 
     @meta('Recebimento de Venda')
     def get_valor_recebido_venda(self):
-        return self.get_cartelas().filter(responsavel__isnull=False, realizou_pagamento=True).count() * self.get_valor()
+        return self.get_cartelas().filter(responsavel__isnull=False, realizou_pagamento=True).count() * self.get_valor_liquido_cartela()
 
     @meta('Recebimento de Doação')
     def get_valor_recebido_doacao(self):
@@ -86,20 +87,24 @@ class Evento(models.Model):
 
     @meta('Recebimento não Realizado')
     def get_valor_nao_recebido(self):
-        return self.get_cartelas().filter(responsavel__isnull=False, realizou_pagamento=False).count() * self.get_valor()
+        return self.get_cartelas().filter(responsavel__isnull=False, realizou_pagamento=False).count() * self.get_valor_liquido_cartela()
 
     @meta('Receita Final')
     def get_receita_final(self):
         return self.get_valor_recebido_venda() + self.get_valor_recebido_doacao()
 
     def get_dados_gerais(self):
-        return self.value_set('nome', 'data')
+        return self.value_set(('nome', 'data'))
 
     def get_resumo_finaneiro(self):
-        return self.value_set('get_receita_esperada', 'get_valor_recebido_venda', 'get_valor_recebido_doacao', 'get_valor_receber', 'get_valor_nao_recebido', 'get_receita_final')
+        return self.value_set(('get_receita_esperada', 'get_valor_recebido_venda'), ('get_valor_recebido_doacao', 'get_valor_receber'), ('get_valor_nao_recebido', 'get_receita_final'))
 
     def get_cartelas(self):
-        return Cartela.objects.filter(talao__evento=self).all().actions('informar_responsavel', 'informar_posse_cartela').batch_actions('informar_responsavel', 'informar_posse_cartela').expand()
+        return Cartela.objects.filter(talao__evento=self).all().actions('informar_responsavel', 'informar_posse_cartela').batch_actions('informar_responsavel', 'informar_posse_cartela').aggregations('get_valor_nao_pago', 'get_valor_pendente_pagamento', 'get_valor_pago').expand()
+
+    @meta('Total de Cartelas')
+    def get_total_cartelas(self):
+        return self.get_cartelas().count()
 
     def view(self):
         return self.value_set('get_dados_gerais', 'get_cartelas', 'get_resumo_finaneiro')
@@ -120,7 +125,7 @@ class Evento(models.Model):
 
 class TalaoManager(models.Manager):
     def all(self):
-        return self
+        return self.lookups(ADMINISTRADOR)
 
 
 class Talao(models.Model):
@@ -138,12 +143,42 @@ class Talao(models.Model):
         return self.numero
 
     def has_permission(self, user):
-        return user.is_superuser
+        return user.is_superuser or user.roles.contains(ADMINISTRADOR)
 
 
 class CartelaManager(models.Manager):
     def all(self):
-        return self.display('numero', 'talao', 'responsavel', 'posse', 'get_situacao').actions('devolver_cartela', 'prestar_conta').batch_actions('devolver_cartela')
+        return self.lookups(ADMINISTRADOR).display('numero', 'talao', 'responsavel', 'posse', 'get_situacao').actions('devolver_cartela', 'prestar_conta').batch_actions('devolver_cartela')
+
+    def pagas(self):
+        return self.filter(realizou_pagamento=True)
+
+    def pendentes_pagamento(self):
+        return self.filter(realizou_pagamento__isnull=True)
+
+    def nao_pagas(self):
+        return self.filter(realizou_pagamento=False)
+
+    def pagas_com_comissao(self):
+        return self.pagas().filter(recebeu_comissao=True)
+
+    def pagas_sem_comissao(self):
+        return self.pagas().filter(recebeu_comissao=True)
+
+    def get_valor_liquido_cartela(self):
+        return self.first().talao.evento.get_valor_liquido_cartela() if self.exists() else 0
+
+    @meta('Pagas')
+    def get_valor_pago(self):
+        return self.pagas().count() * self.get_valor_liquido_cartela()
+
+    @meta('Pendentes')
+    def get_valor_pendente_pagamento(self):
+        return self.pendentes_pagamento().count() * self.get_valor_liquido_cartela()
+
+    @meta('Não-Pagas')
+    def get_valor_nao_pago(self):
+        return self.nao_pagas().count() * self.get_valor_liquido_cartela()
 
 
 class Cartela(models.Model):
@@ -166,8 +201,11 @@ class Cartela(models.Model):
     def __str__(self):
         return self.numero
 
+    def get_evento(self):
+        return self.talao.evento
+
     def has_permission(self, user):
-        return user.is_superuser
+        return user.is_superuser or user.roles.contains(ADMINISTRADOR)
 
     @meta('Situação', renderer='badges/status')
     def get_situacao(self):

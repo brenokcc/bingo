@@ -27,7 +27,7 @@ class DevolverCartela(actions.Action):
         super().submit()
 
     def has_permission(self, user):
-        return self.instance.id and self.instance.responsavel_id is not None or not self.instance.id
+        return (self.instance.id and self.instance.responsavel_id is not None and self.instance.realizou_pagamento is None) or not self.instance.id
 
 
 class InformarPosseCartela(actions.Action):
@@ -53,8 +53,14 @@ class PrestarConta(actions.Action):
         model = 'bingo.cartela'
         fields = 'realizou_pagamento', 'recebeu_comissao'
 
+    def view(self):
+        self.show('recebeu_comissao') if self.instance.realizou_pagamento else self.hide('recebeu_comissao')
+
     def submit(self):
         super().submit()
+
+    def on_realizou_pagamento_change(self, value):
+        self.show('recebeu_comissao') if value else self.hide('recebeu_comissao')
 
     def clean_recebeu_comissao(self):
         if self.cleaned_data['realizou_pagamento'] is None:
