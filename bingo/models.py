@@ -74,7 +74,7 @@ class AdministradorManager(models.Manager):
 
 @role(ADMINISTRADOR, username='pessoa__cpf')
 class Administrador(models.Model):
-    pessoa = models.ForeignKey(Pessoa, verbose_name='Pessoa')
+    pessoa = models.ForeignKey(Pessoa, verbose_name='Pessoa', addable=True)
 
     objects = AdministradorManager()
 

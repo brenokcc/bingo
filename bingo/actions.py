@@ -48,7 +48,7 @@ class InformarPosseCartela(actions.Action):
         super().submit()
 
     def has_permission(self, user):
-        return user.roles.contains(ADMINISTRADOR, OPERADOR) and self.instance.id and self.instance.responsavel_id is not None or not self.instance.id
+        return user.roles.contains(ADMINISTRADOR, OPERADOR) and self.instance.id and self.instance.responsavel_id is not None and not self.instance.realizou_pagamento or not self.instance.id
 
 
 class PrestarConta(actions.Action):
