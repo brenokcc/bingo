@@ -1,1 +1,2 @@
-ADMINISTRADOR = 'Usuário'
+ADMINISTRADOR = 'Administrador'
+OPERADOR = 'Operador'

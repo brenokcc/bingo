@@ -17,7 +17,8 @@ class AppDashboard(Dashboard):
         self.tools_menu('show_icons')
         self.footer(title='© 2022 Bingo', text='Todos os direitos reservados', version='1.0.0')
 
-        self.action_bar('bingo.pessoa', 'bingo.evento')
+        self.action_bar('bingo.evento', 'bingo.pessoa')
+        self.menu('bingo.pessoa', 'bingo.administrador', 'bingo.evento', 'bingo.meiopagamento')
 
     def view(self):
         return self.objects('bingo.evento').all().actions('view').calendar('data')
