@@ -80,12 +80,12 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql_psycopg2'
-DATABASES['default']['NAME'] = os.environ.get('DATABASE_NAME', 'bingo')
-DATABASES['default']['USER'] = os.environ.get('DATABASE_USER', 'postgres')
-DATABASES['default']['PASSWORD'] = os.environ.get('DATABASE_PASSWORD', '')
-DATABASES['default']['HOST'] = os.environ.get('DATABASE_HOST', 'localhost')
-DATABASES['default']['PORT'] = os.environ.get('DATABASE_PORT', '5432')
+# DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql_psycopg2'
+# DATABASES['default']['NAME'] = os.environ.get('DATABASE_NAME', 'bingo')
+# DATABASES['default']['USER'] = os.environ.get('DATABASE_USER', 'postgres')
+# DATABASES['default']['PASSWORD'] = os.environ.get('DATABASE_PASSWORD', '')
+# DATABASES['default']['HOST'] = os.environ.get('DATABASE_HOST', 'localhost')
+# DATABASES['default']['PORT'] = os.environ.get('DATABASE_PORT', '5432')
 
 
 # Password validation
