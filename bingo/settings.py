@@ -187,7 +187,7 @@ OAUTH2_AUTHENTICATORS = {
     }
 }
 
-if os.environ.get('USE_REDIS') == '1':
+if os.environ.get('REDIS_HOST'):
     REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
     REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
@@ -204,10 +204,10 @@ if os.environ.get('USE_REDIS') == '1':
         }
     }
 
-if os.environ.get('USE_POSTGRES') == '1':
+if os.environ.get('POSTGRES_HOST'):
     DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql_psycopg2'
     DATABASES['default']['NAME'] = os.environ.get('DATABASE_NAME', 'database')
     DATABASES['default']['USER'] = os.environ.get('DATABASE_USER', 'postgres')
     DATABASES['default']['PASSWORD'] = os.environ.get('DATABASE_PASSWORD', 'password')
-    DATABASES['default']['HOST'] = os.environ.get('DATABASE_HOST', 'postgres')
+    DATABASES['default']['HOST'] = os.environ.get('POSTGRES_HOST', 'postgres')
     DATABASES['default']['PORT'] = os.environ.get('DATABASE_PORT', '5432')
